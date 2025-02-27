@@ -223,7 +223,12 @@ namespace Convert_Image_to_WEBP
                         Console.WriteLine($"Error converting {currentImagePath}: {ex.Message}");
                     }
 
-                    progressBar.Progress = i + 100;
+                    Invoke(new Action(() =>
+                    {
+                        progressBar.Progress = i + 1;
+                        lblStatus.Text = $"Converting {i + 1} of {selectedImagePaths.Count}...";
+                    }));
+
                 }
 
                 lblStatus.Text = "Conversion completed!";
