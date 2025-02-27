@@ -148,14 +148,13 @@ namespace Convert_Image_to_WEBP
                 return;
             }
 
-            if (string.IsNullOrEmpty(outputFolderPath))
+            if (string.IsNullOrEmpty(outputFolderPath) || !Directory.Exists(outputFolderPath))
             {
-                MessageBox.Show("Please specify an output folder.", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("Invalid output folder. Please select a valid directory.", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
             int quality = (int)numericQuality.Value;
-
             EnableControls(false);
             progressBar.Progress = 0;
             progressBar.Maximum = selectedImagePaths.Count;
@@ -163,73 +162,65 @@ namespace Convert_Image_to_WEBP
             lblStatus.Text = "Converting...";
             lblStatus.Visible = true;
 
-            if (!Directory.Exists(outputFolderPath))
-            {
-                MessageBox.Show("Output folder does not exist or could not be created.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
-            }
-
             int successCount = 0;
             int failCount = 0;
 
             try
             {
-                for (int i = 0; i < selectedImagePaths.Count; i++)
+                await Task.WhenAll(selectedImagePaths.Select(async (currentImagePath, index) =>
                 {
-                    string currentImagePath = selectedImagePaths[i];
-                    string filename = Path.GetFileNameWithoutExtension(currentImagePath);
-                    string outputFilePath = Path.Combine(outputFolderPath, filename + ".webp");
-
-                    lblStatus.Text = $"Converting {i + 1} of {selectedImagePaths.Count}...";
-                    Application.DoEvents();
-
                     try
                     {
+                        string filename = Path.GetFileNameWithoutExtension(currentImagePath);
+                        string outputFilePath = Path.Combine(outputFolderPath, filename + ".webp");
+
                         await Task.Run(() =>
                         {
                             FIBITMAP dib = FreeImage.LoadEx(currentImagePath);
-                            if (dib.IsNull)
+                            try
                             {
-                                throw new Exception($"Failed to load image: {currentImagePath}");
+                                if (dib.IsNull)
+                                {
+                                    throw new Exception($"Failed to load image: {currentImagePath}");
+                                }
+
+                                FreeImage.Save(FREE_IMAGE_FORMAT.FIF_WEBP, dib, outputFilePath, FREE_IMAGE_SAVE_FLAGS.WEBP_DEFAULT);
+                            }
+                            finally
+                            {
+                                FreeImage.Unload(dib);
                             }
 
-                            string outputFile = Path.Combine(outputFolderPath, filename + ".webp");
-
-                            Console.WriteLine($"Converting: {currentImagePath}");
-                            Console.WriteLine($"Saving to: {outputFile}");
-
-                            FreeImage.Save(FREE_IMAGE_FORMAT.FIF_WEBP, dib, outputFile, FREE_IMAGE_SAVE_FLAGS.WEBP_DEFAULT);
-                            FreeImage.UnloadEx(ref dib);
-
-                            if (!File.Exists(outputFile))
+                            if (!File.Exists(outputFilePath))
                             {
-                                throw new Exception($"Failed to save file: {outputFile}");
+                                throw new Exception($"Failed to save file: {outputFilePath}");
                             }
                         });
 
                         successCount++;
 
-                        // Remove the converted image from the ListView
-                        var itemToRemove = listViewImages.Items.Cast<ListViewItem>()
-                                                              .FirstOrDefault(item => item.Text == Path.GetFileName(currentImagePath));
-                        if (itemToRemove != null)
+                        Invoke(new Action(() =>
                         {
-                            listViewImages.Items.Remove(itemToRemove);
-                        }
+                            var itemToRemove = listViewImages.Items.Cast<ListViewItem>()
+                                                                    .FirstOrDefault(item => item.Text == Path.GetFileName(currentImagePath));
+                            if (itemToRemove != null)
+                            {
+                                listViewImages.Items.Remove(itemToRemove);
+                            }
+                        }));
                     }
                     catch (Exception ex)
                     {
                         failCount++;
-                        Console.WriteLine($"Error converting {currentImagePath}: {ex.Message}");
+                        Invoke(new Action(() => MessageBox.Show($"Error converting {currentImagePath}:\n{ex.Message}", "Conversion Error", MessageBoxButtons.OK, MessageBoxIcon.Error)));
                     }
 
                     Invoke(new Action(() =>
                     {
-                        progressBar.Progress = i + 1;
-                        lblStatus.Text = $"Converting {i + 1} of {selectedImagePaths.Count}...";
+                        progressBar.Progress = index + 1;
+                        lblStatus.Text = $"Converting {index + 1} of {selectedImagePaths.Count}...";
                     }));
-
-                }
+                }));
 
                 lblStatus.Text = "Conversion completed!";
                 MessageBox.Show($"Conversion completed!\n\nSuccessfully converted: {successCount} images\nFailed: {failCount} images",
@@ -245,6 +236,7 @@ namespace Convert_Image_to_WEBP
                 EnableControls(true);
             }
         }
+
 
         private void EnableControls(bool enable)
         {
