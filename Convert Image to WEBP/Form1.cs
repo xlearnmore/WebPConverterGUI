@@ -96,11 +96,10 @@ namespace Convert_Image_to_WEBP
                         string[] imageExtensions = { "*.jpg", "*.jpeg", "*.png", "*.bmp", "*.gif" };
                         selectedImagePaths.Clear();
 
-                        foreach (string extension in imageExtensions)
-                        {
-                            string[] files = Directory.GetFiles(folderDialog.SelectedPath, extension);
-                            selectedImagePaths.AddRange(files);
-                        }
+                        selectedImagePaths = Directory.EnumerateFiles(folderDialog.SelectedPath, "*.*", SearchOption.TopDirectoryOnly)
+                              .Where(f => imageExtensions.Contains(Path.GetExtension(f).ToLower()))
+                              .ToList();
+
 
                         txtImagePath.Text = $"{selectedImagePaths.Count} files found in folder";
 
