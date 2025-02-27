@@ -70,6 +70,7 @@ namespace Convert_Image_to_WEBP
             this.listViewImages.TabIndex = 3;
             this.listViewImages.UseCompatibleStateImageBehavior = false;
             this.listViewImages.View = System.Windows.Forms.View.List;
+            this.listViewImages.SelectedIndexChanged += new System.EventHandler(this.listViewImages_SelectedIndexChanged);
             // 
             // progressBar
             // 
