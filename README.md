@@ -43,8 +43,7 @@ A Windows Forms application that allows users to convert images (**JPG, PNG, BMP
 - 🕒 Large batches may take time depending on system performance.
 
 ## 📜 License
-This project is licensed under the **MIT License**.
-
+This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details.
 ## 👤 Author
 [Xlearnmore](https://github.com/xlearnmore)
 
